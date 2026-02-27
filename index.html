@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Rating App</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .logo i {
+            font-size: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: #667eea;
+        }
+
+        /* Account Menu */
+        .account-menu {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .account-menu i {
+            font-size: 2rem;
+            color: #667eea;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            z-index: 1;
+        }
+
+        .account-menu:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content a {
+            display: block;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .dropdown-content a:hover {
+            background: #f5f5f5;
+        }
+
+        .login-btn {
+            padding: 0.5rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .login-btn:hover {
+            background: #5a67d8;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        /* Songs Grid */
+        .songs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .song-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .song-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .song-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .song-card .artist {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .song-card .album {
+            color: #999;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .song-card .year {
+            color: #999;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .song-card .collaborators {
+            color: #667eea;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Rating Display */
+        .rating-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .total-rating {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .total-rating .stars {
+            color: #ffd700;
+            font-size: 1.2rem;
+        }
+
+        .total-rating .value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .admin-rating,
+        .user-rating {
+            flex: 1;
+            text-align: center;
+        }
+
+        .admin-rating {
+            text-align: left;
+        }
+
+        .user-rating {
+            text-align: right;
+        }
+
+        .rating-label {
+            font-size: 0.8rem;
+            color: #666;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .stars {
+            color: #ffd700;
+        }
+
+        .stars i {
+            margin-right: 2px;
+        }
+
+        /* Rating Input */
+        .rating-input {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .rating-input i {
+            font-size: 1.5rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .rating-input i.active {
+            color: #ffd700;
+        }
+
+        /* Admin Actions */
+        .admin-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .edit-btn,
+        .delete-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .edit-btn {
+            background: #4299e1;
+            color: white;
+        }
+
+        .edit-btn:hover {
+            background: #3182ce;
+        }
+
+        .delete-btn {
+            background: #f56565;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background: #e53e3e;
+        }
+
+        /* Admin Song Item */
+        .admin-song-item {
+            background: #f5f5f5;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 1rem;
+        }
+
+        .modal-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-content button {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .modal-content button:first-of-type {
+            background: #48bb78;
+            color: white;
+        }
+
+        .modal-content button:first-of-type:hover {
+            background: #38a169;
+        }
+
+        .modal-content button:nth-of-type(2) {
+            background: #f56565;
+            color: white;
+        }
+
+        .modal-content button:nth-of-type(2):hover {
+            background: #e53e3e;
+        }
+
+        .modal-content button:last-of-type {
+            background: #a0aec0;
+            color: white;
+        }
+
+        .modal-content button:last-of-type:hover {
+            background: #718096;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .songs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .rating-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .admin-rating,
+            .user-rating {
+                text-align: center;
+            }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-left">
+                <div class="logo">
+                    <i class="fas fa-music"></i>
+                    <span>MusicRate</span>
+                </div>
+                <ul class="nav-links">
+                    <li><a onclick="showHome(event)" class="active">Home</a></li>
+                    <li><a onclick="showSongs(event)">Songs</a></li>
+                    <li><a onclick="showAlbums(event)">Albums</a></li>
+                    <li><a onclick="showArtists(event)">Artists</a></li>
+                </ul>
+            </div>
+            <div class="nav-right">
+                <div class="account-menu" id="accountMenu" style="display: none;">
+                    <i class="fas fa-user-circle"></i>
+                    <div class="dropdown-content" id="dropdownContent"></div>
+                </div>
+                <button class="login-btn" id="loginBtn">Login with Google</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Admin Panel (hidden by default) -->
+        <div id="adminPanel" class="admin-panel" style="display: none;">
+            <h2>Admin Panel - Manage Songs</h2>
+            <form id="songForm">
+                <div class="form-group">
+                    <input type="text" id="songName" placeholder="Song Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="albumName" placeholder="Album Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="artistName" placeholder="Artist Name" required>
+                </div>
+                <div class="form-group">
+                    <label>Collaborators/Features (comma separated)</label>
+                    <input type="text" id="collaborators" placeholder="e.g., Artist 1, Artist 2">
+                </div>
+                <div class="form-group">
+                    <input type="number" id="yearReleased" placeholder="Year Released" min="1900" max="2024" required>
+                </div>
+                <button type="submit" class="btn-primary">Add Song</button>
+            </form>
+            
+            <!-- Songs List for Admin -->
+            <div class="admin-songs-list" id="adminSongsList">
+                <h3>Manage Existing Songs</h3>
+                <!-- Songs will be loaded here dynamically -->
+            </div>
+        </div>
+
+        <!-- Songs Grid -->
+        <div class="songs-grid" id="songsGrid">
+            <div style="text-align: center; width: 100%;">
+                <div class="loading-spinner"></div>
+                <p>Loading songs...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Delete Account Modal -->
+    <div id="deleteAccountModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>Delete Account</h3>
+            <p>What would you like to do with your ratings?</p>
+            <button onclick="handleAccountDeletion('keep')">Keep Ratings</button>
+            <button onclick="handleAccountDeletion('remove')">Remove Ratings</button>
+            <button onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7f3ySHPOYhGnUWKnlg1nAthGMvS0zW00",
+            authDomain: "bopsense.firebaseapp.com",
+            projectId: "bopsense",
+            storageBucket: "bopsense.firebasestorage.app",
+            messagingSenderId: "964595184880",
+            appId: "1:964595184880:web:6ec023f85e0ffd47b63e35"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+        }
+        
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Global variables
+        let currentUser = null;
+        let isAdmin = false;
+        let editingSongId = null;
+
+        // ==================== AUTHENTICATION ====================
+        
+        // Google Login function
+        async function loginWithGoogle() {
+            console.log("Login button clicked");
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // Add additional scopes if needed
+            provider.addScope('profile');
+            provider.addScope('email');
+            
+            // Set custom parameters
+            provider.setCustomParameters({
+                'prompt': 'select_account'
+            });
+            
+            try {
+                console.log("Attempting sign in with popup...");
+                const result = await auth.signInWithPopup(provider);
+                console.log("Sign in successful:", result.user.email);
+                
+                const user = result.user;
+                
+                // Check if user exists in database
+                const userDoc = await db.collection("users").doc(user.uid).get();
+                
+                if (!userDoc.exists) {
+                    // New user - check if admin (set your admin email)
+                    const isAdmin = user.email === "admin@example.com"; // CHANGE THIS
+                    
+                    await db.collection("users").doc(user.uid).set({
+                        email: user.email,
+                        displayName: user.displayName,
+                        isAdmin: isAdmin,
+                        createdAt: new Date()
+                    });
+                    console.log("New user created in database");
+                }
+            } catch (error) {
+                console.error("Login error details:", error);
+                
+                // Handle specific errors
+                if (error.code === 'auth/popup-blocked') {
+                    alert('Popup was blocked by the browser. Please allow popups for this site or try again.');
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    console.log('Popup closed by user');
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    console.log('Popup request cancelled');
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    alert('This domain is not authorized for Firebase authentication. Please add it to the authorized domains in Firebase Console.');
+                } else {
+                    alert("Login failed: " + error.message);
+                }
+            }
+        }
+
+        // Attach login event listener with multiple approaches to ensure it works
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginBtn = document.getElementById('loginBtn');
+            if (loginBtn) {
+                // Remove any existing listeners
+                loginBtn.replaceWith(loginBtn.cloneNode(true));
+                
+                // Get the fresh element and add listener
+                const newLoginBtn = document.getElementById('loginBtn');
+                newLoginBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log("Login button clicked via event listener");
+                    loginWithGoogle();
+                });
+                
+                // Also keep the onclick attribute as backup
+                newLoginBtn.onclick = function(e) {
+                    e.preventDefault();
+                    console.log("Login button clicked via onclick");
+                    loginWithGoogle();
+                    return false;
+                };
+                
+                console.log("Login button event listener attached");
+            } else {
+                console.error("Login button not found!");
+            }
+        });
+
+        // Logout
+        window.logout = function() {
+            auth.signOut()
+                .then(() => {
+                    console.log("User signed out");
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error("Logout error:", error);
+                });
+        };
+
+        // Check Auth State
+        auth.onAuthStateChanged(async (user) => {
+            console.log("Auth state changed:", user ? `User: ${user.email}` : "No user");
+            
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginBtn').style.display = 'none';
+                document.getElementById('accountMenu').style.display = 'block';
+                
+                try {
+                    // Check if user is admin
+                    const userDoc = await db.collection("users").doc(user.uid).get();
+                    const userData = userDoc.data();
+                    
+                    isAdmin = userData && userData.isAdmin;
+                    console.log("Is admin:", isAdmin);
+                    
+                    // Update dropdown menu
+                    const dropdown = document.getElementById('dropdownContent');
+                    dropdown.innerHTML = '';
+                    
+                    if (isAdmin) {
+                        const adminLink = document.createElement('a');
+                        adminLink.href = '#';
+                        adminLink.onclick = (e) => {
+                            e.preventDefault();
+                            showAdminPanel();
+                        };
+                        adminLink.textContent = 'Admin Panel';
+                        dropdown.appendChild(adminLink);
+                    }
+                    
+                    const deleteLink = document.createElement('a');
+                    deleteLink.href = '#';
+                    deleteLink.onclick = (e) => {
+                        e.preventDefault();
+                        showDeleteAccountModal();
+                    };
+                    deleteLink.textContent = 'Delete Account';
+                    dropdown.appendChild(deleteLink);
+                    
+                    const logoutLink = document.createElement('a');
+                    logoutLink.href = '#';
+                    logoutLink.onclick = (e) => {
+                        e.preventDefault();
+                        logout();
+                    };
+                    logoutLink.textContent = 'Logout';
+                    dropdown.appendChild(logoutLink);
+                    
+                } catch (error) {
+                    console.error("Error fetching user data:", error);
+                }
+                
+                // Load songs
+                loadSongs();
+            } else {
+                currentUser = null;
+                isAdmin = false;
+                document.getElementById('loginBtn').style.display = 'block';
+                document.getElementById('accountMenu').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'none';
+                loadSongs();
+            }
+        });
+
+        // ==================== SONG MANAGEMENT ====================
+
+        // Load songs
+        async function loadSongs() {
+            const songsGrid = document.getElementById('songsGrid');
+            songsGrid.innerHTML = '<div style="text-align: center; width: 100%;"><div class="loading-spinner"></div><p>Loading songs...</p></div>';
+            
+            try {
+                const snapshot = await db.collection("songs").orderBy("createdAt", "desc").get();
+                
+                if (snapshot.empty) {
+                    songsGrid.innerHTML = '<p style="text-align: center; width: 100%;">No songs available. Be the first to add one!</p>';
+                    return;
+                }
+                
+                songsGrid.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const song = doc.data();
+                    song.id = doc.id;
+                    const songCard = createSongCard(song);
+                    songsGrid.appendChild(songCard);
+                });
+            } catch (error) {
+                console.error("Error loading songs:", error);
+                songsGrid.innerHTML = '<p style="text-align: center; width: 100%; color: red;">Error loading songs. Please check your Firebase configuration.</p>';
+            }
+        }
+
+        // Create song card
+        function createSongCard(song) {
+            const card = document.createElement('div');
+            card.className = 'song-card';
+            card.id = `song-${song.id}`;
+            
+            // Parse collaborators
+            const collaborators = song.collaborators ? song.collaborators.split(',').map(c => c.trim()) : [];
+            
+            // Get user's current rating if logged in
+            let userRating = 0;
+            if (currentUser && song.userRatings && song.userRatings[currentUser.uid]) {
+                userRating = song.userRatings[currentUser.uid];
+            }
+            
+            card.innerHTML = `
+                <h3>${song.name || 'Untitled'}</h3>
+                <p class="artist">Artist: ${song.artist || 'Unknown'}</p>
+                <p class="album">Album: ${song.album || 'Unknown'}</p>
+                <p class="year">Year: ${song.year || 'N/A'}</p>
+                ${collaborators.length > 0 ? `<p class="collaborators">Feat. ${collaborators.join(', ')}</p>` : ''}
+                
+                <div class="total-rating">
+                    <span class="stars">${getStarRating(song.averageRating || 0)}</span>
+                    <span class="value">(${(song.averageRating || 0).toFixed(1)})</span>
+                </div>
+                
+                <div class="rating-container">
+                    <div class="admin-rating">
+                        <span class="rating-label">Admin</span>
+                        <span class="stars">${getStarRating(song.adminRating || 0)}</span>
+                    </div>
+                    <div class="user-rating">
+                        <span class="rating-label">Users</span>
+                        <span class="stars">${getStarRating(song.userRating || 0)}</span>
+                    </div>
+                </div>
+                
+                ${currentUser ? `
+                    <div class="rating-input" data-song-id="${song.id}">
+                        ${createRatingStars(userRating, song.id)}
+                    </div>
+                ` : '<p style="text-align: center; color: #666; font-size: 0.9rem;">Login to rate this song</p>'}
+                
+                ${isAdmin ? `
+                    <div class="admin-actions">
+                        <button onclick="editSong('${song.id}')" class="edit-btn">Edit</button>
+                        <button onclick="deleteSong('${song.id}')" class="delete-btn">Delete</button>
+                    </div>
+                ` : ''}
+            `;
+            
+            // Add rating event listeners if user is logged in
+            if (currentUser) {
+                const stars = card.querySelectorAll('.rating-input i');
+                stars.forEach(star => {
+                    star.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const rating = parseInt(e.target.dataset.rating);
+                        rateSong(song.id, rating);
+                    });
+                });
+            }
+            
+            return card;
+        }
+
+        // Create rating stars HTML
+        function createRatingStars(currentRating, songId) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                const active = i <= currentRating ? 'active' : '';
+                stars += `<i class="fas fa-star ${active}" data-rating="${i}"></i>`;
+            }
+            return stars;
+        }
+
+        // Get star rating HTML
+        function getStarRating(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    stars += '<i class="fas fa-star"></i>';
+                } else if (i - 0.5 <= rating) {
+                    stars += '<i class="fas fa-star-half-alt"></i>';
+                } else {
+                    stars += '<i class="far fa-star"></i>';
+                }
+            }
+            return stars;
+        }
+
+        // Rate a song
+        async function rateSong(songId, rating) {
+            if (!currentUser) {
+                alert('Please login to rate songs');
+                return;
+            }
+            
+            try {
+                // Check if user has already rated this song
+                const ratingsQuery = await db.collection("ratings")
+                    .where("songId", "==", songId)
+                    .where("userId", "==", currentUser.uid)
+                    .get();
+                
+                if (!ratingsQuery.empty) {
+                    // Update existing rating
+                    const ratingDoc = ratingsQuery.docs[0];
+                    await db.collection("ratings").doc(ratingDoc.id).update({
+                        rating: rating,
+                        updatedAt: new Date()
+                    });
+                } else {
+                    // Create new rating
+                    await db.collection("ratings").add({
+                        songId: songId,
+                        userId: currentUser.uid,
+                        rating: rating,
+                        createdAt: new Date()
+                    });
+                }
+                
+                // Update song averages
+                await updateSongAverages(songId);
+                
+                // Refresh the song card
+                refreshSongCard(songId);
+                
+            } catch (error) {
+                console.error("Error rating song:", error);
+                alert("Error rating song: " + error.message);
+            }
+        }
+
+        // Update song averages
+        async function updateSongAverages(songId) {
+            try {
+                // Get all ratings for this song
+                const ratingsSnapshot = await db.collection("ratings")
+                    .where("songId", "==", songId)
+                    .get();
+                
+                let totalRating = 0;
+                let adminTotal = 0;
+                let userTotal = 0;
+                let adminCount = 0;
+                let userCount = 0;
+                let userRatings = {};
+                
+                for (const ratingDoc of ratingsSnapshot.docs) {
+                    const rating = ratingDoc.data();
+                    totalRating += rating.rating;
+                    userRatings[rating.userId] = rating.rating;
+                    
+                    // Check if rater is admin
+                    const userDoc = await db.collection("users").doc(rating.userId).get();
+                    if (userDoc.exists && userDoc.data().isAdmin) {
+                        adminTotal += rating.rating;
+                        adminCount++;
+                    } else {
+                        userTotal += rating.rating;
+                        userCount++;
+                    }
+                }
+                
+                const averageRating = ratingsSnapshot.size > 0 ? totalRating / ratingsSnapshot.size : 0;
+                const adminAverage = adminCount > 0 ? adminTotal / adminCount : 0;
+                const userAverage = userCount > 0 ? userTotal / userCount : 0;
+                
+                // Update song document
+                await db.collection("songs").doc(songId).update({
+                    averageRating: averageRating,
+                    adminRating: adminAverage,
+                    userRating: userAverage,
+                    userRatings: userRatings,
+                    totalRatings: ratingsSnapshot.size
+                });
+                
+            } catch (error) {
+                console.error("Error updating averages:", error);
+            }
+        }
+
+        // Refresh song card
+        async function refreshSongCard(songId) {
+            const songDoc = await db.collection("songs").doc(songId).get();
+            if (songDoc.exists) {
+                const song = songDoc.data();
+                song.id = songDoc.id;
+                
+                const oldCard = document.getElementById(`song-${songId}`);
+                if (oldCard) {
+                    const newCard = createSongCard(song);
+                    oldCard.parentNode.replaceChild(newCard, oldCard);
+                }
+            }
+        }
+
+        // ==================== ADMIN FUNCTIONS ====================
+
+        // Show admin panel
+        window.showAdminPanel = function() {
+            document.getElementById('adminPanel').style.display = 'block';
+            loadAdminSongs();
+        };
+
+        // Load songs for admin management
+        async function loadAdminSongs() {
+            const adminSongsList = document.getElementById('adminSongsList');
+            
+            try {
+                const snapshot = await db.collection("songs").orderBy("createdAt", "desc").get();
+                
+                // Clear existing content except the heading
+                while (adminSongsList.children.length > 1) {
+                    adminSongsList.removeChild(adminSongsList.lastChild);
+                }
+                
+                if (snapshot.empty) {
+                    const emptyMsg = document.createElement('p');
+                    emptyMsg.textContent = 'No songs available.';
+                    adminSongsList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                snapshot.forEach((doc) => {
+                    const song = doc.data();
+                    song.id = doc.id;
+                    const songItem = createAdminSongItem(song);
+                    adminSongsList.appendChild(songItem);
+                });
+            } catch (error) {
+                console.error("Error loading admin songs:", error);
+            }
+        }
+
+        // Create admin song item
+        function createAdminSongItem(song) {
+            const div = document.createElement('div');
+            div.className = 'admin-song-item';
+            
+            div.innerHTML = `
+                <div>
+                    <strong>${song.name}</strong> - ${song.artist} (${song.year})
+                    <br>
+                    <small>Album: ${song.album}</small>
+                    ${song.collaborators ? `<br><small>Feat: ${song.collaborators}</small>` : ''}
+                </div>
+                <div class="admin-actions">
+                    <button onclick="editSong('${song.id}')" class="edit-btn">Edit</button>
+                    <button onclick="deleteSong('${song.id}')" class="delete-btn">Delete</button>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // Handle song form submission
+        document.getElementById('songForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!isAdmin) {
+                alert('Admin access required');
+                return;
+            }
+            
+            const songData = {
+                name: document.getElementById('songName').value,
+                album: document.getElementById('albumName').value,
+                artist: document.getElementById('artistName').value,
+                collaborators: document.getElementById('collaborators').value,
+                year: parseInt(document.getElementById('yearReleased').value),
+                createdAt: new Date(),
+                averageRating: 0,
+                adminRating: 0,
+                userRating: 0,
+                userRatings: {},
+                totalRatings: 0
+            };
+            
+            try {
+                if (editingSongId) {
+                    // Update existing song
+                    await db.collection("songs").doc(editingSongId).update({
+                        ...songData,
+                        updatedAt: new Date()
+                    });
+                    alert('Song updated successfully!');
+                    editingSongId = null;
+                    
+                    // Change button text back
+                    const submitBtn = document.querySelector('#songForm button[type="submit"]');
+                    submitBtn.textContent = 'Add Song';
+                } else {
+                    // Add new song
+                    await db.collection("songs").add(songData);
+                    alert('Song added successfully!');
+                }
+                
+                document.getElementById('songForm').reset();
+                loadAdminSongs();
+                loadSongs();
+            } catch (error) {
+                console.error("Error saving song:", error);
+                alert('Error saving song: ' + error.message);
+            }
+        });
+
+        // Edit song
+        window.editSong = async function(songId) {
+            if (!isAdmin) {
+                alert('Admin access required');
+                return;
+            }
+            
+            try {
+                const songDoc = await db.collection("songs").doc(songId).get();
+                if (!songDoc.exists) return;
+                
+                const song = songDoc.data();
+                
+                // Populate form with song data
+                document.getElementById('songName').value = song.name || '';
+                document.getElementById('albumName').value = song.album || '';
+                document.getElementById('artistName').value = song.artist || '';
+                document.getElementById('collaborators').value = song.collaborators || '';
+                document.getElementById('yearReleased').value = song.year || '';
+                
+                editingSongId = songId;
+                
+                // Change button text
+                const submitBtn = document.querySelector('#songForm button[type="submit"]');
+                submitBtn.textContent = 'Update Song';
+                
+                // Show admin panel if hidden
+                document.getElementById('adminPanel').style.display = 'block';
+                
+                // Scroll to form
+                document.getElementById('songForm').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error("Error loading song for edit:", error);
+            }
+        };
+
+        // Delete song
+        window.deleteSong = async function(songId) {
+            if (!isAdmin) {
+                alert('Admin access required');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to delete this song?')) return;
+            
+            try {
+                // Delete all ratings for this song first
+                const ratingsSnapshot = await db.collection("ratings")
+                    .where("songId", "==", songId)
+                    .get();
+                
+                const batch = db.batch();
+                ratingsSnapshot.forEach((ratingDoc) => {
+                    batch.delete(ratingDoc.ref);
+                });
+                
+                // Delete the song
+                batch.delete(db.collection("songs").doc(songId));
+                
+                await batch.commit();
+                
+                alert('Song deleted successfully!');
+                loadAdminSongs();
+                loadSongs();
+            } catch (error) {
+                console.error("Error deleting song:", error);
+                alert('Error deleting song: ' + error.message);
+            }
+        };
+
+        // ==================== ACCOUNT MANAGEMENT ====================
+
+        // Show delete account modal
+        window.showDeleteAccountModal = function() {
+            document.getElementById('deleteAccountModal').style.display = 'flex';
+        };
+
+        // Close modal
+        window.closeModal = function() {
+            document.getElementById('deleteAccountModal').style.display = 'none';
+        };
+
+        // Handle account deletion
+        window.handleAccountDeletion = async function(ratingOption) {
+            if (!currentUser) return;
+            
+            try {
+                if (ratingOption === 'remove') {
+                    // Delete all ratings by this user
+                    const ratingsSnapshot = await db.collection("ratings")
+                        .where("userId", "==", currentUser.uid)
+                        .get();
+                    
+                    const batch = db.batch();
+                    ratingsSnapshot.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                }
+                
+                // Delete user document
+                await db.collection("users").doc(currentUser.uid).delete();
+                
+                // Delete user auth account
+                await currentUser.delete();
+                
+                closeModal();
+                alert("Account deleted successfully");
+                window.location.reload();
+            } catch (error) {
+                console.error("Error deleting account:", error);
+                alert("Error deleting account: " + error.message);
+            }
+        };
+
+        // ==================== NAVIGATION ====================
+
+        window.showHome = function(event) {
+            event.preventDefault();
+            // Update active class
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
+            loadSongs();
+        };
+
+        window.showSongs = function(event) {
+            event.preventDefault();
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
+            loadSongs();
+        };
+
+        window.showAlbums = function(event) {
+            event.preventDefault();
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
+            // You can implement album view here
+            alert('Albums view coming soon!');
+        };
+
+        window.showArtists = function(event) {
+            event.preventDefault();
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+            event.target.classList.add('active');
+            // You can implement artist view here
+            alert('Artists view coming soon!');
+        };
+
+        // ==================== INITIALIZATION ====================
+
+        // Load songs on page load
+        loadSongs();
+
+        // Log Firebase status
+        console.log("Firebase Auth:", auth ? "Initialized" : "Not initialized");
+        console.log("Firebase Firestore:", db ? "Initialized" : "Not initialized");
+    </script>
+</body>
+</html>
